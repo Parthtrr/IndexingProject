@@ -4,13 +4,16 @@ from elastic_client import get_es_client
 from mappings import index_mapping
 from elasticsearch import helpers
 import pandas as pd
+from logging_config import get_logger
 
+logger = get_logger(__name__)
 
 def index_data(index_name, data, ticker):
     es = get_es_client()
-
+    logger.info(f"building the indexable object for stock = {ticker}")
     # Check if the index exists, create if it doesn't
     if not es.indices.exists(index=index_name):
+        logger.info(f"Index does not exist creating the index with name {index_name}")
         es.indices.create(index=index_name, body=index_mapping)
 
     # Prepare bulk indexing actions
