@@ -14,5 +14,6 @@ def incremental_index():
     for ticker in nifty500:
         logger.info(f"Incremental Indexing for {ticker}")
         data = fetch_data(ticker, date_from_index, date_to_index)
-        data["Ticker"] = ticker
-        index_data("nifty_data", data,ticker=ticker)
+        if data is not None:
+            data["Ticker"] = ticker
+            index_data("nifty_data", data,ticker=ticker)
