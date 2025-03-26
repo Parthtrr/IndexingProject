@@ -12,6 +12,7 @@ numpy==2.0.2
 pandas==2.2.3
 peewee==3.17.8
 platformdirs==4.3.6
+PySocks==1.7.1
 python-dateutil==2.9.0.post0
 pytz==2025.1
 requests==2.32.3
@@ -21,4 +22,5 @@ typing_extensions==4.12.2
 tzdata==2025.1
 urllib3==2.3.0
 webencodings==0.5.1
-yfinance==0.2.52
+yf==0.0.4
+yfinance==0.2.55

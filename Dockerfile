@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirement.txt
 COPY . .
 
 # Set the default command to run the app
-CMD ["python", "fullIndexing.py"]
+CMD ["python", "incrementalIndexing.py"]
