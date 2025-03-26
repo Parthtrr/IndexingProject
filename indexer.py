@@ -20,7 +20,7 @@ def index_data(index_name, data, ticker):
     def generate_actions():
         for _, row in data.iterrows():  # Assuming `data` is a pandas DataFrame
             # Ensure the 'Date' column is a datetime object
-            date_value = pd.to_datetime(row['Date'], errors='coerce').item().strftime('%Y-%m-%d')
+            date_value = pd.to_datetime(row['Date'], errors='coerce').strftime('%Y-%m-%d')
             ticker_value = row['Ticker'].iloc[0] if isinstance(row['Ticker'], pd.Series) else row['Ticker']
             open_value = row['Open'].iloc[0] if isinstance(row['Open'], pd.Series) else row['Open']
             close_value = row['Close'].iloc[0] if isinstance(row['Close'], pd.Series) else row['Close']
