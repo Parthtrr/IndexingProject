@@ -12,7 +12,8 @@ index_mapping = {
             "close": {"type": "float"},
             "high": {"type": "float"},
             "low": {"type": "float"},
-            "volume": {"type": "long"}
+            "volume": {"type": "long"},
+            "rsi": {"type": "float"}
         }
     }
 }
