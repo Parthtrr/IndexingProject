@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import pandas as pd
-from Constant import nifty500
+import Constant
 from data_fetcher import fetch_data
 from indexer import index_data
 from logging_config import get_logger
@@ -14,7 +14,7 @@ def incremental_index(batch_size=50):
     date_to_index = (today + timedelta(days=1)).strftime("%Y-%m-%d")
 
     logger.info(f"Starting incremental indexing from {date_from_index} to {date_to_index}")
-
+    nifty500 = Constant.nifty500 + Constant.indices
     for i in range(0, len(nifty500), batch_size):
         batch = nifty500[i:i + batch_size]  # Process tickers in batches
         logger.info(f"Processing batch {i // batch_size + 1} with {len(batch)} tickers")

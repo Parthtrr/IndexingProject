@@ -7,7 +7,7 @@ import pandas as pd
 
 def full_index():
     batch_size = Constant.batch_size  # Define batch size
-    tickers = Constant.nifty500  # Get the full list of stocks
+    tickers = Constant.nifty500 + Constant.indices  # Get the full list of stocks
 
     for i in range(0, len(tickers), batch_size):
         batch = tickers[i:i + batch_size]  # Create a batch of 50 tickers
