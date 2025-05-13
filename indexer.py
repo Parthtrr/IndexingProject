@@ -1,11 +1,10 @@
-from numpy.matlib import empty
-
-from elastic_client import get_es_client
-from mappings import index_mapping
-from elasticsearch import helpers
 import pandas as pd
+from elasticsearch import helpers
+
+from Constant import rsi_window, roc_period  # Assuming `roc_period` is defined in your Constant.py
+from elastic_client import get_es_client
 from logging_config import get_logger
-from Constant import rsi_window  # Assuming this is defined as 14 or your preferred period
+from mappings import index_mapping
 
 logger = get_logger(__name__)
 
@@ -21,48 +20,92 @@ def calculate_rsi(data, period):
     data['rs'] = data['avg_gain'] / data['avg_loss']
     data['rsi'] = 100 - (100 / (1 + data['rs']))
 
-    # Fill the first `period` rows with 0.0
     data['rsi'] = data['rsi'].fillna(0.0)
     return data
 
-def index_data(index_name, data, ticker):
+
+def calculate_roc(data, period):
+    """
+    Calculate Rate of Change (ROC) for the given data and period.
+    """
+    data = data.copy()
+    data['roc'] = (data['Close'].pct_change(periods=period) * 100)
+    data['roc'] = data['roc'].fillna(0.0)  # Fill the first `period` rows with 0.0
+    return data
+
+
+def index_data(index_name, data, ticker, nifty_data=None):
     es = get_es_client()
-    logger.info(f"building the indexable object for stock = {ticker}")
+    logger.info(f"Building the indexable object for stock = {ticker}")
 
     if not es.indices.exists(index=index_name):
-        logger.info(f"Index does not exist creating the index with name {index_name}")
+        logger.info(f"Index does not exist. Creating the index with name {index_name}")
         es.indices.create(index=index_name, body=index_mapping)
 
-    # Ensure data is sorted by date before RSI calculation
+    # Ensure data is sorted by date before RSI and ROC calculation
     data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
     data = data.sort_values(by='Date')
 
     # Calculate RSI
     data = calculate_rsi(data, rsi_window)
 
+    # --- New Section: Calculate ROC and Compare with Nifty ROC ---
+    # Calculate stock ROC
+    data = calculate_roc(data, roc_period)
+
+    # Calculate Nifty ROC if provided
+    if nifty_data is not None:
+        # Ensure Nifty data is sorted by Date as well
+        nifty_data['Date'] = pd.to_datetime(nifty_data['Date'], errors='coerce')
+        nifty_data = nifty_data.sort_values(by='Date')
+
+        # Calculate Nifty ROC
+        nifty_data = calculate_roc(nifty_data, roc_period)
+
+        # Merge Nifty ROC into stock data based on Date
+        nifty_data.rename(columns={'roc': 'roc_nifty'}, inplace=True)
+        data = pd.merge(data, nifty_data[['Date', 'roc_nifty']], on='Date', how='left')
+
+    data.fillna({
+        'Open': 0.0,
+        'Close': 0.0,
+        'High': 0.0,
+        'Low': 0.0,
+        'Volume': 0,
+        'rsi': 0.0,
+        'roc': 0.0,
+        'roc_nifty': 0.0
+    }, inplace=True)
+
+    # --- End of New Section ---
+
     def generate_actions():
         for _, row in data.iterrows():
             date_value = row['Date'].strftime('%Y-%m-%d')
-            ticker_value = row['Ticker']
 
             action = {
                 "_op_type": "index",
                 "_index": index_name,
                 "_id": f"{ticker}_{date_value}",
                 "_source": {
-                    "ticker": ticker_value,
+                    "ticker": ticker,
                     "date": date_value,
-                    "open": float(row['Open']) if not pd.isna(row['Open']) else 0.0,
-                    "close": float(row['Close']) if not pd.isna(row['Close']) else 0.0,
-                    "high": float(row['High']) if not pd.isna(row['High']) else 0.0,
-                    "low": float(row['Low']) if not pd.isna(row['Low']) else 0.0,
-                    "volume": int(row['Volume']) if not pd.isna(row['Volume']) else 0,
-                    "rsi": float(row['rsi']) if not pd.isna(row['rsi']) else 0.0
+                    "open": float(row['Open']),
+                    "close": float(row['Close']),
+                    "high": float(row['High']),
+                    "low": float(row['Low']),
+                    "volume": int(row['Volume']),
+                    "rsi": float(row['rsi']),
+                    "roc": float(row['roc']),
+                    "roc_nifty": float(row['roc_nifty'])
                 }
             }
             yield action
 
-    print(f"Indexing data for {ticker}...")
-    success, failed = helpers.bulk(es, generate_actions())
-    print(f"Successfully indexed {success} documents.")
-    print(f"Failed to index {failed} documents.")
+    try:
+        success, _ = helpers.bulk(es, generate_actions(), raise_on_error=True)
+        print(f"Successfully indexed {success} documents.")
+    except helpers.BulkIndexError as e:
+        print(f"{len(e.errors)} document(s) failed to index.")
+        for err in e.errors:
+            print(err)

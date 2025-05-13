@@ -1,7 +1,6 @@
 import yfinance as yf
 from logging_config import get_logger
 import Constant
-import pandas as pd
 
 logger = get_logger(__name__)
 

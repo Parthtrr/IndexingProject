@@ -13,7 +13,9 @@ index_mapping = {
             "high": {"type": "float"},
             "low": {"type": "float"},
             "volume": {"type": "long"},
-            "rsi": {"type": "float"}
+            "rsi": {"type": "float"},
+            "roc": {"type": "float"},  # Added field for stock ROC
+            "roc_nifty": {"type": "float"}  # Added field for Nifty ROC
         }
     }
 }

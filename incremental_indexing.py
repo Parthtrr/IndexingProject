@@ -63,6 +63,6 @@ def incremental_index(batch_size=50):
             ticker_data["Ticker"] = ticker
 
             # Index the data
-            index_data("nifty_data", ticker_data, ticker)
+            index_data("nifty_data", ticker_data, ticker, nifty_df)
 
     logger.info("Incremental indexing completed successfully.")
