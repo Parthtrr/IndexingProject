@@ -1,7 +1,7 @@
 import pandas as pd
 from elasticsearch import helpers
 
-from Constant import rsi_window, roc_period  # Assuming `roc_period` is defined in your Constant.py
+from Constant import rsi_window, roc_period, atr_period  # Assuming `roc_period` is defined in your Constant.py
 from elastic_client import get_es_client
 from logging_config import get_logger
 from mappings import index_mapping
@@ -21,6 +21,19 @@ def calculate_rsi(data, period):
     data['rsi'] = 100 - (100 / (1 + data['rs']))
 
     data['rsi'] = data['rsi'].fillna(0.0)
+    return data
+
+def calculate_atr(data, period):
+    data = data.copy()
+
+    data['high_low'] = data['High'] - data['Low']
+    data['high_close_prev'] = abs(data['High'] - data['Close'].shift())
+    data['low_close_prev'] = abs(data['Low'] - data['Close'].shift())
+
+    data['tr'] = data[['high_low', 'high_close_prev', 'low_close_prev']].max(axis=1)
+    data['atr'] = data['tr'].rolling(window=period).mean()
+
+    data['atr'] = data['atr'].fillna(0.0)
     return data
 
 
@@ -45,6 +58,9 @@ def index_data(index_name, data, ticker, nifty_data=None):
     # Ensure data is sorted by date before RSI and ROC calculation
     data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
     data = data.sort_values(by='Date')
+
+    # Calculate ATR
+    data = calculate_atr(data, atr_period)
 
     # Calculate RSI
     data = calculate_rsi(data, rsi_window)
@@ -74,7 +90,8 @@ def index_data(index_name, data, ticker, nifty_data=None):
         'Volume': 0,
         'rsi': 0.0,
         'roc': 0.0,
-        'roc_nifty': 0.0
+        'roc_nifty': 0.0,
+        'atr': 0.0
     }, inplace=True)
 
     # --- End of New Section ---
@@ -97,7 +114,8 @@ def index_data(index_name, data, ticker, nifty_data=None):
                     "volume": int(row['Volume']),
                     "rsi": float(row['rsi']),
                     "roc": float(row['roc']),
-                    "roc_nifty": float(row['roc_nifty'])
+                    "roc_nifty": float(row['roc_nifty']),
+                    "atr": float(row['atr'])
                 }
             }
             yield action

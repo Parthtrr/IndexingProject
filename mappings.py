@@ -15,7 +15,8 @@ index_mapping = {
             "volume": {"type": "long"},
             "rsi": {"type": "float"},
             "roc": {"type": "float"},  # Added field for stock ROC
-            "roc_nifty": {"type": "float"}  # Added field for Nifty ROC
+            "roc_nifty": {"type": "float"},
+            "atr": {"type": "float"}
         }
     }
 }
