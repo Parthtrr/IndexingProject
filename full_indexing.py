@@ -85,4 +85,4 @@ def full_index():
                 ticker_data["Date"] = date_series.values
                 ticker_data["Ticker"] = ticker
 
-                index_data("nifty_data", ticker_data, ticker, nifty_df)  # 🔹 Pass Nifty data in each call
+                index_data("nifty_data_weekly", ticker_data, ticker, nifty_df)  # 🔹 Pass Nifty data in each call

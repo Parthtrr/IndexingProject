@@ -1,6 +1,6 @@
 host = "http://192.168.1.100:9200"
 startDate = "2010-01-01"
-interval = "1d"
+interval = "1wk"
 batch_size = 50
 rsi_window = 14
 atr_period = 14
