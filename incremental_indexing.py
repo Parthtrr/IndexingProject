@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 import pandas as pd
 import Constant
+from Constant import roc_period
 from data_fetcher import fetch_data
-from indexer import index_data
+from indexer import index_data, index_data_incremental
 from logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -47,7 +48,7 @@ def get_nifty_df():
 
 def incremental_index(batch_size=50):
     today = datetime.now()
-    date_from_index = (today - timedelta(days=3)).strftime("%Y-%m-%d")
+    date_from_index = (today - timedelta(days=(2*roc_period+3))).strftime("%Y-%m-%d")
     date_to_index = (today + timedelta(days=1)).strftime("%Y-%m-%d")
 
     logger.info(f"Starting incremental indexing from {date_from_index} to {date_to_index}")
@@ -107,6 +108,6 @@ def incremental_index(batch_size=50):
             ticker_data["Ticker"] = ticker
 
             # ✅ Updated: Pass nifty_df so index_data can calculate and merge Nifty ROC
-            index_data("nifty_data", ticker_data, ticker, nifty_df)
+            index_data_incremental("nifty_data", ticker_data, ticker, nifty_df)
 
     logger.info("Incremental indexing completed successfully.")

@@ -127,3 +127,66 @@ def index_data(index_name, data, ticker, nifty_data=None):
         print(f"{len(e.errors)} document(s) failed to index.")
         for err in e.errors:
             print(err)
+
+
+def index_data_incremental(index_name, data, ticker, nifty_data=None):
+    es = get_es_client()
+    logger.info(f"Building the incremental indexable object for stock = {ticker}")
+
+    if not es.indices.exists(index=index_name):
+        logger.info(f"Index does not exist. Creating the index with name {index_name}")
+        es.indices.create(index=index_name, body=index_mapping)
+
+    # Ensure data is sorted by date before indicator calculations
+    data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
+    data = data.sort_values(by='Date')
+
+    # Calculate indicators
+    data = calculate_atr(data, atr_period)
+    data = calculate_rsi(data, rsi_window)
+    data = calculate_roc(data, roc_period)
+
+    # Handle Nifty ROC
+    if nifty_data is not None:
+        nifty_data['Date'] = pd.to_datetime(nifty_data['Date'], errors='coerce')
+        nifty_data = nifty_data.sort_values(by='Date')
+        nifty_data = calculate_roc(nifty_data, roc_period)
+        nifty_data.rename(columns={'roc': 'roc_nifty'}, inplace=True)
+        data = pd.merge(data, nifty_data[['Date', 'roc_nifty']], on='Date', how='left')
+
+    # Keep only the last 5 rows
+    data = data.tail(5)
+
+    def generate_actions():
+        for _, row in data.iterrows():
+            date_value = row['Date'].strftime('%Y-%m-%d')
+
+            doc = {}
+            for field in ["Open", "Close", "High", "Low", "Volume", "rsi", "roc", "roc_nifty", "atr"]:
+                value = row[field]
+                if isinstance(value, float) and (pd.isna(value) or value == 0.0):
+                    continue
+                if isinstance(value, int) and value == 0:
+                    continue
+                doc[field.lower()] = float(value) if isinstance(value, float) else int(value)
+
+            # Always include these fields
+            doc["ticker"] = ticker
+            doc["date"] = date_value
+
+            action = {
+                "_op_type": "update",
+                "_index": index_name,
+                "_id": f"{ticker}_{date_value}",
+                "doc": doc,
+                "doc_as_upsert": True
+            }
+            yield action
+
+    try:
+        success, _ = helpers.bulk(es, generate_actions(), raise_on_error=True)
+        print(f"Successfully indexed {success} documents incrementally.")
+    except helpers.BulkIndexError as e:
+        print(f"{len(e.errors)} document(s) failed to index.")
+        for err in e.errors:
+            print(err)
