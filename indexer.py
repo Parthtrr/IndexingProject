@@ -99,6 +99,8 @@ def index_data(index_name, data, ticker, nifty_data=None):
     def generate_actions():
         for _, row in data.iterrows():
             date_value = row['Date'].strftime('%Y-%m-%d')
+            if float(row['Open']) == 0.0:
+                continue
 
             action = {
                 "_op_type": "index",
