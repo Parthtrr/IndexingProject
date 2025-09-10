@@ -80,11 +80,11 @@ def full_index():
                     except KeyError:
                         continue
                 else:
-                    ticker_cols = [col for col in data_df.columns if col.endswith(f"/{ticker}")]
+                    ticker_cols = [col for col in data_df.columns if col.startswith(ticker)]
                     if not ticker_cols:
                         continue
                     ticker_data = data_df[ticker_cols].copy()
-                    ticker_data.columns = [col.split("/")[0] for col in ticker_cols]
+                    ticker_data.columns = [col.split("/")[1] for col in ticker_cols]
 
                 ticker_data = ticker_data.reset_index(drop=True)
                 ticker_data["Date"] = date_series.values

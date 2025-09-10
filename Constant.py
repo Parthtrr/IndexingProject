@@ -1,6 +1,6 @@
 host = "http://192.168.1.100:9200"
-startDate = "2020-01-01"
-interval = "1wk"
+startDate = "2010-01-01"
+interval = "1d"
 index_name = "nifty_data_weekly"
 batch_size = 50
 rsi_window = 14
