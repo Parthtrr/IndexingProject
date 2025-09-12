@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import Constant
 from data_fetcher import fetch_data
 from indexer import index_data
@@ -10,7 +10,7 @@ def get_nifty_df():
     Fetches and returns Nifty 50 data with columns [Date, Close].
     """
     nifty_symbol = "^NSEI"  # Adjust if your data source uses a different symbol
-    end_date = datetime.now().strftime("%Y-%m-%d")
+    end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     nifty_data = fetch_data([nifty_symbol], Constant.startDate, end_date)
     print(f"nifty data fetched from {Constant.startDate} to {end_date}" )
     if nifty_data is None or nifty_data.empty:
@@ -51,7 +51,7 @@ def full_index():
         print("Nifty data unavailable. Skipping indexing.")
         return
 
-    end_date = datetime.now().strftime("%Y-%m-%d")
+    end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     print(f"data fetched from {Constant.startDate} to {end_date}")
 
