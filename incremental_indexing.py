@@ -108,6 +108,6 @@ def incremental_index(batch_size=50):
             ticker_data["Ticker"] = ticker
 
             # ✅ Updated: Pass nifty_df so index_data can calculate and merge Nifty ROC
-            index_data_incremental("nifty_data", ticker_data, ticker, nifty_df)
+            index_data_incremental("nifty_data_weekly", ticker_data, ticker, nifty_df)
 
     logger.info("Incremental indexing completed successfully.")

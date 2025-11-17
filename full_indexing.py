@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import Constant
 from data_fetcher import fetch_data
 from indexer import index_data
@@ -10,8 +10,9 @@ def get_nifty_df():
     Fetches and returns Nifty 50 data with columns [Date, Close].
     """
     nifty_symbol = "^NSEI"  # Adjust if your data source uses a different symbol
-
-    nifty_data = fetch_data([nifty_symbol], Constant.startDate, datetime.now().strftime("%Y-%m-%d"))
+    end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    nifty_data = fetch_data([nifty_symbol], Constant.startDate, end_date)
+    print(f"nifty data fetched from {Constant.startDate} to {end_date}" )
     if nifty_data is None or nifty_data.empty:
         print("Nifty data not fetched.")
         return None
@@ -50,9 +51,13 @@ def full_index():
         print("Nifty data unavailable. Skipping indexing.")
         return
 
+    end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    print(f"data fetched from {Constant.startDate} to {end_date}")
+
     for i in range(0, len(tickers), batch_size):
         batch = tickers[i:i + batch_size]
-        data_df = fetch_data(batch, Constant.startDate, datetime.now().strftime("%Y-%m-%d"))
+        data_df = fetch_data(batch, Constant.startDate, end_date)
 
         if data_df is not None and not data_df.empty:
             if isinstance(data_df.columns, pd.MultiIndex):
@@ -75,14 +80,14 @@ def full_index():
                     except KeyError:
                         continue
                 else:
-                    ticker_cols = [col for col in data_df.columns if col.endswith(f"/{ticker}")]
+                    ticker_cols = [col for col in data_df.columns if col.startswith(ticker)]
                     if not ticker_cols:
                         continue
                     ticker_data = data_df[ticker_cols].copy()
-                    ticker_data.columns = [col.split("/")[0] for col in ticker_cols]
+                    ticker_data.columns = [col.split("/")[1] for col in ticker_cols]
 
                 ticker_data = ticker_data.reset_index(drop=True)
                 ticker_data["Date"] = date_series.values
                 ticker_data["Ticker"] = ticker
 
-                index_data("nifty_data", ticker_data, ticker, nifty_df)  # 🔹 Pass Nifty data in each call
+                index_data(Constant.index_name, ticker_data, ticker, nifty_df)  # 🔹 Pass Nifty data in each call
