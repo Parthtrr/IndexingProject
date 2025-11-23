@@ -91,7 +91,9 @@ def index_data(index_name, data, ticker, nifty_data=None):
         'rsi': 0.0,
         'roc': 0.0,
         'roc_nifty': 0.0,
-        'atr': 0.0
+        'atr': 0.0,
+        'type': 'stock',
+        'isCustom': False
     }, inplace=True)
 
     # --- End of New Section ---
@@ -117,7 +119,10 @@ def index_data(index_name, data, ticker, nifty_data=None):
                     "rsi": float(row['rsi']),
                     "roc": float(row['roc']),
                     "roc_nifty": float(row['roc_nifty']),
-                    "atr": float(row['atr'])
+                    "atr": float(row['atr']),
+                    "indices": row['indices'],
+                    "type": row["type"],
+                    "isCustom": row["isCustom"]
                 }
             }
             yield action

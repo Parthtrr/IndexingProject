@@ -4,6 +4,10 @@ from elasticsearch import Elasticsearch, helpers
 ES_INDEX = "indices"
 
 mapping = {
+    "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0
+    },
     "mappings": {
         "properties": {
             "Name": {"type": "keyword"},

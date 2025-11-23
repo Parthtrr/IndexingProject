@@ -13,10 +13,13 @@ index_mapping = {
             "high": {"type": "float"},
             "low": {"type": "float"},
             "volume": {"type": "long"},
+            "indices": {"type": "keyword"},  # Array of indices tickers
             "rsi": {"type": "float"},
-            "roc": {"type": "float"},  # Added field for stock ROC
+            "roc": {"type": "float"},
             "roc_nifty": {"type": "float"},
-            "atr": {"type": "float"}
+            "atr": {"type": "float"},
+            "type": {"type": "keyword"},
+            "isCustom": {"type": "boolean"}
         }
     }
 }
