@@ -29,7 +29,7 @@ END_QUERY = {
     "query": {
         "bool": {
             "must": [
-                {"term": {"date": {"value": "2025-11-17"}}},
+                {"term": {"date": {"value": "2025-12-01"}}},
                 {"term": {"type": {"value": "index"}}}
             ]
         }
