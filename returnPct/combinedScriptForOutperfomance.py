@@ -9,8 +9,8 @@ ES_HOST = "http://localhost:9200"
 ES_INDEX = "nifty_data_weekly"
 OUT_FILE = "finalOutperformance.xlsx"
 
-START_DATE = "2025-06-23"
-END_DATE = "2025-12-01"
+START_DATE = "2025-06-30"
+END_DATE = "2026-01-12"
 
 # ---------------------------
 # ES QUERIES
@@ -22,6 +22,13 @@ def make_query(date, doc_type, indices=None):
         "query": {
             "bool": {
                 "must": [
+                    {
+                        "term": {
+                            "isCustom": {
+                                "value": "false"
+                            }
+                        }
+                    },
                     {"term": {"date": {"value": date}}},
                     {"term": {"type": {"value": doc_type}}}
                 ]
@@ -94,7 +101,7 @@ def main():
     df_index.sort_values(by="return%", ascending=False, inplace=True)
 
     # NSEI return
-    nsei_return = df_index[df_index["ticker"] == "^NSEI"]["return%"].values[0]
+    nsei_return = df_index[df_index["ticker"] == "^CRSLDX"]["return%"].values[0]
 
     print(f"\nNSEI Return = {nsei_return:.2f}%")
 
