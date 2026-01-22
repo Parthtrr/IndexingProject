@@ -99,16 +99,23 @@ def calculate_vcp_trend_template(data):
     VCP Trend Template:
     - At least 30% above 52W low
     - At most 25% below 52W high
-    - Trend must be bullish
+    - MA trend bullish (10 > 30 > 40)
+    - Price above 30W and 40W MA
     """
+
+    data["price_above_ma_30"] = data["Close"] > data["ma_30"]
+    data["price_above_ma_40"] = data["Close"] > data["ma_40"]
 
     data["vcp_trend_template"] = (
         (data["dist_from_52w_low_pct"] >= 30) &
         (data["dist_from_52w_high_pct"] >= -25) &
-        (data["trend"] == "bullish")
+        (data["trend"] == "bullish") &
+        (data["price_above_ma_30"]) &
+        (data["price_above_ma_40"])
     )
 
     return data
+
 
 
 
