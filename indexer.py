@@ -94,6 +94,23 @@ def calculate_52w_high_low(data, window=52):
 
     return data
 
+def calculate_vcp_trend_template(data):
+    """
+    VCP Trend Template:
+    - At least 30% above 52W low
+    - At most 25% below 52W high
+    - Trend must be bullish
+    """
+
+    data["vcp_trend_template"] = (
+        (data["dist_from_52w_low_pct"] >= 30) &
+        (data["dist_from_52w_high_pct"] >= -25) &
+        (data["trend"] == "bullish")
+    )
+
+    return data
+
+
 
 
 # ================= FULL BULK INDEX ================= #
@@ -120,6 +137,7 @@ def index_data(index_name, data, ticker, nifty_data=None):
 
     data = calculate_ma_crossover_flags(data)
     data = calculate_52w_high_low(data)
+    data = calculate_vcp_trend_template(data)
 
     data = data.copy()
     logger.info(f"demerger = {data._mgr.nblocks}")
@@ -143,6 +161,7 @@ def index_data(index_name, data, ticker, nifty_data=None):
         "low_52w": 0.0,
         "dist_from_52w_high_pct": 0.0,
         "dist_from_52w_low_pct": 0.0,
+        "vcp_trend_template": False,
         "type": "stock", "isCustom": False
     }, inplace=True)
 
@@ -180,6 +199,7 @@ def index_data(index_name, data, ticker, nifty_data=None):
                     "low_52w": float(r["low_52w"]),
                     "dist_from_52w_high_pct": float(r["dist_from_52w_high_pct"]),
                     "dist_from_52w_low_pct": float(r["dist_from_52w_low_pct"]),
+                    "vcp_trend_template": bool(r["vcp_trend_template"]),
                     "indices": r["indices"],
                     "type": r["type"],
                     "isCustom": r["isCustom"]
