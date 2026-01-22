@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 # ================= INDICATORS ================= #
 
 def calculate_rsi(data, period):
-    data = data.copy()
+    # data = data.copy()
     data["change"] = data["Close"].diff()
     data["gain"] = data["change"].clip(lower=0)
     data["loss"] = -data["change"].clip(upper=0)
@@ -28,7 +28,7 @@ def calculate_rsi(data, period):
 
 
 def calculate_atr(data, period):
-    data = data.copy()
+    # data = data.copy()
 
     data["high_low"] = data["High"] - data["Low"]
     data["high_close_prev"] = (data["High"] - data["Close"].shift()).abs()
@@ -42,14 +42,14 @@ def calculate_atr(data, period):
 
 
 def calculate_roc(data, period):
-    data = data.copy()
+    # data = data.copy()
     data["roc"] = data["Close"].pct_change(periods=period, fill_method=None) * 100
     data["roc"] = data["roc"].fillna(0.0)
     return data
 
 
 def calculate_ma(data, ma_period, ma_type="sma"):
-    data = data.copy()
+    # data = data.copy()
     col = f"ma_{ma_period}"
 
     if ma_type == "sma":
@@ -64,7 +64,7 @@ def calculate_ma(data, ma_period, ma_type="sma"):
 
 
 def calculate_ma_crossover_flags(data):
-    data = data.copy()
+    # data = data.copy()
 
     data["ma_10_above_30"] = data["ma_10"] > data["ma_30"]
     data["ma_30_above_40"] = data["ma_30"] > data["ma_40"]
@@ -92,6 +92,7 @@ def index_data(index_name, data, ticker, nifty_data=None):
     data = data.sort_values("Date")
 
     # Indicators
+    data = data.copy()
     data = calculate_atr(data, atr_period)
     data = calculate_rsi(data, rsi_window)
     data = calculate_roc(data, roc_period)
@@ -100,6 +101,8 @@ def index_data(index_name, data, ticker, nifty_data=None):
         data = calculate_ma(data, p)
 
     data = calculate_ma_crossover_flags(data)
+    data = data.copy()
+    logger.info(f"demerger = {data._mgr.nblocks}")
 
     # NIFTY ROC merge
     if nifty_data is not None:
@@ -155,6 +158,7 @@ def index_data(index_name, data, ticker, nifty_data=None):
                 }
             }
 
+    logger.info(f"demerger 2 = {data._mgr.nblocks}")
     helpers.bulk(es, actions(), raise_on_error=True)
 
 
@@ -171,6 +175,7 @@ def index_data_incremental(index_name, data, ticker, nifty_data=None):
     data = data.sort_values("Date")
 
     # Indicators
+    data = data.copy()
     data = calculate_atr(data, atr_period)
     data = calculate_rsi(data, rsi_window)
     data = calculate_roc(data, roc_period)
@@ -179,6 +184,8 @@ def index_data_incremental(index_name, data, ticker, nifty_data=None):
         data = calculate_ma(data, p)
 
     data = calculate_ma_crossover_flags(data)
+    data = data.copy()
+    logger.info(f"demerger = {data._mgr.nblocks}")
 
     # NIFTY ROC
     if nifty_data is not None:
