@@ -77,6 +77,24 @@ def calculate_ma_crossover_flags(data):
 
     return data
 
+def calculate_52w_high_low(data, window=52):
+    """
+    For weekly candles: 52 candles = 52 weeks = 1 year
+    """
+    # data = data.copy()
+
+    data["high_52w"] = data["High"].rolling(window=window, min_periods=1).max()
+    data["low_52w"] = data["Low"].rolling(window=window, min_periods=1).min()
+
+    data["dist_from_52w_high_pct"] = ((data["Close"] - data["high_52w"]) / data["high_52w"].replace(0, pd.NA)) * 100
+    data["dist_from_52w_low_pct"] = ((data["Close"] - data["low_52w"]) / data["low_52w"].replace(0, pd.NA)) * 100
+
+    data[["high_52w","low_52w","dist_from_52w_high_pct","dist_from_52w_low_pct"]] = \
+        data[["high_52w","low_52w","dist_from_52w_high_pct","dist_from_52w_low_pct"]].fillna(0.0)
+
+    return data
+
+
 
 # ================= FULL BULK INDEX ================= #
 
@@ -101,6 +119,8 @@ def index_data(index_name, data, ticker, nifty_data=None):
         data = calculate_ma(data, p)
 
     data = calculate_ma_crossover_flags(data)
+    data = calculate_52w_high_low(data)
+
     data = data.copy()
     logger.info(f"demerger = {data._mgr.nblocks}")
 
@@ -119,6 +139,10 @@ def index_data(index_name, data, ticker, nifty_data=None):
         "ma_10": 0.0, "ma_30": 0.0, "ma_40": 0.0,
         "ma_10_above_30": False, "ma_30_above_40": False, "ma_10_above_40": False,
         "trend": "sideways",
+        "high_52w": 0.0,
+        "low_52w": 0.0,
+        "dist_from_52w_high_pct": 0.0,
+        "dist_from_52w_low_pct": 0.0,
         "type": "stock", "isCustom": False
     }, inplace=True)
 
@@ -152,6 +176,10 @@ def index_data(index_name, data, ticker, nifty_data=None):
                     "ma_30_above_40": bool(r["ma_30_above_40"]),
                     "ma_10_above_40": bool(r["ma_10_above_40"]),
                     "trend": r["trend"],
+                    "high_52w": float(r["high_52w"]),
+                    "low_52w": float(r["low_52w"]),
+                    "dist_from_52w_high_pct": float(r["dist_from_52w_high_pct"]),
+                    "dist_from_52w_low_pct": float(r["dist_from_52w_low_pct"]),
                     "indices": r["indices"],
                     "type": r["type"],
                     "isCustom": r["isCustom"]
@@ -164,65 +192,67 @@ def index_data(index_name, data, ticker, nifty_data=None):
 
 # ================= INCREMENTAL INDEX ================= #
 
-def index_data_incremental(index_name, data, ticker, nifty_data=None):
-    es = get_es_client()
-    logger.info(f"Incremental indexing {ticker}")
-
-    if not es.indices.exists(index=index_name):
-        es.indices.create(index=index_name, body=index_mapping)
-
-    data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
-    data = data.sort_values("Date")
-
-    # Indicators
-    data = data.copy()
-    data = calculate_atr(data, atr_period)
-    data = calculate_rsi(data, rsi_window)
-    data = calculate_roc(data, roc_period)
-
-    for p in [10, 30, 40]:
-        data = calculate_ma(data, p)
-
-    data = calculate_ma_crossover_flags(data)
-    data = data.copy()
-    logger.info(f"demerger = {data._mgr.nblocks}")
-
-    # NIFTY ROC
-    if nifty_data is not None:
-        nifty_data["Date"] = pd.to_datetime(nifty_data["Date"], errors="coerce")
-        nifty_data = nifty_data.sort_values("Date")
-        nifty_data = calculate_roc(nifty_data, roc_period)
-        nifty_data.rename(columns={"roc": "roc_nifty"}, inplace=True)
-        data = pd.merge(data, nifty_data[["Date", "roc_nifty"]], on="Date", how="left")
-
-    # Only last 5 rows
-    data = data.tail(5)
-
-    def actions():
-        for _, r in data.iterrows():
-            date = r["Date"].strftime("%Y-%m-%d")
-            doc = {}
-
-            for f in ["Open","Close","High","Low","Volume","rsi","roc","roc_nifty","atr","ma_10","ma_30","ma_40"]:
-                if pd.isna(r[f]) or r[f] == 0:
-                    continue
-                doc[f.lower()] = float(r[f]) if isinstance(r[f], float) else int(r[f])
-
-            # booleans + trend
-            doc["ma_10_above_30"] = bool(r["ma_10_above_30"])
-            doc["ma_30_above_40"] = bool(r["ma_30_above_40"])
-            doc["ma_10_above_40"] = bool(r["ma_10_above_40"])
-            doc["trend"] = r["trend"]
-
-            doc["ticker"] = ticker
-            doc["date"] = date
-
-            yield {
-                "_op_type": "update",
-                "_index": index_name,
-                "_id": f"{ticker}_{date}",
-                "doc": doc,
-                "doc_as_upsert": True
-            }
-
-    helpers.bulk(es, actions(), raise_on_error=True)
+# def index_data_incremental(index_name, data, ticker, nifty_data=None):
+#     es = get_es_client()
+#     logger.info(f"Incremental indexing {ticker}")
+#
+#     if not es.indices.exists(index=index_name):
+#         es.indices.create(index=index_name, body=index_mapping)
+#
+#     data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
+#     data = data.sort_values("Date")
+#
+#     # Indicators
+#     data = data.copy()
+#     data = calculate_atr(data, atr_period)
+#     data = calculate_rsi(data, rsi_window)
+#     data = calculate_roc(data, roc_period)
+#
+#     for p in [10, 30, 40]:
+#         data = calculate_ma(data, p)
+#
+#     data = calculate_ma_crossover_flags(data)
+#     data = calculate_52w_high_low(data)
+#
+#     data = data.copy()
+#     logger.info(f"demerger = {data._mgr.nblocks}")
+#
+#     # NIFTY ROC
+#     if nifty_data is not None:
+#         nifty_data["Date"] = pd.to_datetime(nifty_data["Date"], errors="coerce")
+#         nifty_data = nifty_data.sort_values("Date")
+#         nifty_data = calculate_roc(nifty_data, roc_period)
+#         nifty_data.rename(columns={"roc": "roc_nifty"}, inplace=True)
+#         data = pd.merge(data, nifty_data[["Date", "roc_nifty"]], on="Date", how="left")
+#
+#     # Only last 5 rows
+#     data = data.tail(5)
+#
+#     def actions():
+#         for _, r in data.iterrows():
+#             date = r["Date"].strftime("%Y-%m-%d")
+#             doc = {}
+#
+#             for f in ["Open","Close","High","Low","Volume","rsi","roc","roc_nifty","atr","ma_10","ma_30","ma_40","high_52w","low_52w","dist_from_52w_high_pct","dist_from_52w_low_pct"]:
+#                 if pd.isna(r[f]) or r[f] == 0:
+#                     continue
+#                 doc[f.lower()] = float(r[f]) if isinstance(r[f], float) else int(r[f])
+#
+#             # booleans + trend
+#             doc["ma_10_above_30"] = bool(r["ma_10_above_30"])
+#             doc["ma_30_above_40"] = bool(r["ma_30_above_40"])
+#             doc["ma_10_above_40"] = bool(r["ma_10_above_40"])
+#             doc["trend"] = r["trend"]
+#
+#             doc["ticker"] = ticker
+#             doc["date"] = date
+#
+#             yield {
+#                 "_op_type": "update",
+#                 "_index": index_name,
+#                 "_id": f"{ticker}_{date}",
+#                 "doc": doc,
+#                 "doc_as_upsert": True
+#             }
+#
+#     helpers.bulk(es, actions(), raise_on_error=True)
