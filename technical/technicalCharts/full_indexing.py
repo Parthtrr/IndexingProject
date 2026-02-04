@@ -3,7 +3,7 @@ import Constant
 from data_fetcher import fetch_data
 from indexer import index_data
 import pandas as pd
-from technical.fetchConstituents import build_reverse_dict, get_tickers_with_custom_flag
+from technical.fetchConstituents.fetchTickerToIndexMapping import build_reverse_dict, get_tickers_with_custom_flag
 
 
 def get_nifty_df():
