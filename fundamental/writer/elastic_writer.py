@@ -1,3 +1,4 @@
+import math
 from elasticsearch import Elasticsearch
 from fundamental.models.fundamental import FundamentalData
 from fundamental.utils.logger import get_logger
@@ -30,6 +31,8 @@ class ElasticWriter:
             "ratios": self._ratios_doc(data),
             "quarterly": quarterly
         }
+
+        document = self._sanitize_for_es(document)
 
         logger.info(f"Indexing (merge) {ticker}")
         self.es.index(index=self.index, id=ticker, document=document)
@@ -83,19 +86,33 @@ class ElasticWriter:
 
         for _, row in data.ratios.iterrows():
             key = row["Metric"].lower().replace(" ", "_")
-            value = row["Value"]
 
             if key not in ALLOWED_RATIOS:
                 continue
 
-            value = value.replace(",", "").replace("%", "")
-
-            try:
-                ratios[key] = float(value)
-            except ValueError:
+            val = self.safe_float(row["Value"])
+            if val is None:
                 continue
 
+            ratios[key] = val
+
         return ratios
+
+    def safe_float(self, value):
+        if value is None:
+            return None
+
+        value = str(value).strip()
+
+        if value in ("", "-", "--", "NA", "N/A"):
+            return None
+
+        value = value.replace(",", "").replace("%", "")
+
+        try:
+            return float(value)
+        except ValueError:
+            return None
 
     def _quarterly_docs(self, data: FundamentalData) -> list:
         records = []
@@ -127,3 +144,24 @@ class ElasticWriter:
 
         return records
 
+    import math
+
+    def _sanitize_for_es(self, obj):
+        if isinstance(obj, dict):
+            return {
+                k: self._sanitize_for_es(v)
+                for k, v in obj.items()
+                if not (isinstance(v, float) and math.isnan(v))
+            }
+
+        if isinstance(obj, list):
+            return [
+                self._sanitize_for_es(v)
+                for v in obj
+                if not (isinstance(v, float) and math.isnan(v))
+            ]
+
+        if isinstance(obj, float) and math.isnan(obj):
+            return None
+
+        return obj
