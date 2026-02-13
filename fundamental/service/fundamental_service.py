@@ -14,10 +14,19 @@ class FundamentalService:
     def fetch_fundamentals(self, ticker: str) -> FundamentalData:
         logger.info(f"Processing fundamentals for {ticker}")
 
-        html = self.client.fetch_company_page(ticker)
-        parsed = self.parser.parse(html)
 
-        sleep(REQUEST_DELAY_SEC)
+        try:
+            html = self.client.fetch_company_page(ticker)
+            parsed = self.parser.parse(html)
+            quarterly_metrics = [q["metric"] for q in parsed.get("quarterly", [])]
+            sleep(REQUEST_DELAY_SEC)
+        except Exception as e:
+            logger.error(f"❌ Failed for consolidated {ticker}: {e}")
+            html = self.client.fetch_company_page_standalone(ticker)
+            parsed = self.parser.parse(html)
+            sleep(REQUEST_DELAY_SEC)
+
+        required_metrics = {"Sales", "Net Profit", "EPS in Rs"}
 
         return FundamentalData(
             quarterly=parsed["quarterly"],
